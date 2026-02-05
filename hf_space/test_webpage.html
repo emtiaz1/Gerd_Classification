@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GERD Classifier - Web Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .api-config {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .api-config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .api-config input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-area.dragover {
+            background: #e0e7ff;
+            border-color: #4f46e5;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .preview-container {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .prediction-bar {
+            margin: 10px 0;
+        }
+        
+        .prediction-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .bar-container {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+        }
+        
+        .bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .lime-container {
+            margin-top: 20px;
+        }
+        
+        #limeImage {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .success-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 GERD Endoscopy Classifier</h1>
+        <p class="subtitle">Upload an endoscopy image to classify GERD severity with LIME explanations</p>
+        
+        <div class="api-config">
+            <label for="apiUrl">Hugging Face Space URL:</label>
+            <input type="text" id="apiUrl" placeholder="https://ezahmed-gerd-classifier.hf.space" 
+                   value="https://ezahmed-gerd-classifier.hf.space">
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" accept="image/*">
+            <div>
+                <p style="font-size: 48px; margin: 0;">📤</p>
+                <p style="font-size: 18px; color: #666;">Drop an image here or click to upload</p>
+                <p style="font-size: 14px; color: #999;">Supports: JPG, PNG, JPEG</p>
+            </div>
+        </div>
+        
+        <div class="preview-container" id="previewContainer">
+            <h3>Selected Image:</h3>
+            <img id="preview" alt="Preview">
+        </div>
+        
+        <button class="btn" id="analyzeBtn" disabled>🔍 Analyze Image</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing image and generating LIME explanation...</p>
+            <p style="color: #999; font-size: 14px;">This may take 15-30 seconds</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="results" id="results">
+            <h2>Classification Results <span class="success-badge" id="topClass"></span></h2>
+            <div id="predictions"></div>
+            
+            <div class="lime-container">
+                <h2>LIME Explanation</h2>
+                <p style="color: #666;">🟢 Green = Supporting regions | 🔴 Red = Opposing regions</p>
+                <img id="limeImage" alt="LIME Explanation">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewContainer = document.getElementById('previewContainer');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        
+        let selectedFile = null;
+        
+        // Drag and drop handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file.');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                analyzeBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+            
+            results.style.display = 'none';
+            error.style.display = 'none';
+        }
+        
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            loading.style.display = 'none';
+        }
+        
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            if (!apiUrl) {
+                showError('Please enter the Hugging Face Space URL');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            analyzeBtn.disabled = true;
+            
+            try {
+                // Convert image to base64
+                const base64 = await fileToBase64(selectedFile);
+                
+                // Call Gradio 3.x API endpoint
+                const response = await fetch(`${apiUrl}/api/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: [base64]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                displayResults(result.data);
+                
+            } catch (err) {
+                console.error('Error:', err);
+                showError(`Failed to analyze image: ${err.message}. Make sure the Space URL is correct and the Space is running.`);
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function displayResults(data) {
+            const [predictionsData, limeImageData] = data;
+            
+            // Display predictions
+            const predictionsDiv = document.getElementById('predictions');
+            predictionsDiv.innerHTML = '';
+            
+            // Handle Gradio 3.x Label component output format
+            let sortedPredictions = [];
+            
+            if (predictionsData && predictionsData.confidences) {
+                // Format: {label: "class", confidences: [{label: "A", confidence: 0.8}, ...]}
+                sortedPredictions = predictionsData.confidences
+                    .map(item => [item.label, item.confidence])
+                    .sort((a, b) => b[1] - a[1]);
+            } else if (typeof predictionsData === 'object') {
+                // Format: {class1: 0.8, class2: 0.2, ...}
+                sortedPredictions = Object.entries(predictionsData)
+                    .sort((a, b) => b[1] - a[1]);
+            }
+            
+            // Set top class badge
+            if (sortedPredictions.length > 0) {
+                document.getElementById('topClass').textContent = sortedPredictions[0][0];
+            }
+            
+            sortedPredictions.forEach(([label, confidence]) => {
+                const percentage = (confidence * 100).toFixed(1);
+                const html = `
+                    <div class="prediction-bar">
+                        <div class="prediction-label">
+                            <span>${label}</span>
+                            <span>${percentage}%</span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+                predictionsDiv.innerHTML += html;
+            });
+            
+            // Display LIME image
+            if (limeImageData) {
+                const limeImage = document.getElementById('limeImage');
+                // Handle various image formats from Gradio 3.x
+                if (typeof limeImageData === 'string') {
+                    if (limeImageData.startsWith('data:') || limeImageData.startsWith('http')) {
+                        limeImage.src = limeImageData;
+                    } else {
+                        limeImage.src = `data:image/png;base64,${limeImageData}`;
+                    }
+                } else if (limeImageData.data) {
+                    // Gradio 3.x may return {data: "base64...", is_file: false}
+                    limeImage.src = limeImageData.data;
+                }
+            }
+            
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
