@@ -1,5 +1,5 @@
 ---
-title: GERD Endoscopy Classification
+title: GERD & Polyp Endoscopy Classification
 emoji: 🔬
 colorFrom: blue
 colorTo: green
@@ -11,15 +11,15 @@ license: mit
 header: mini
 ---
 
-# 🔬 GERD Endoscopy Classification with LIME Explanations
+# 🔬 GERD & Polyp Endoscopy Classification with LIME Explanations
 
-A Lightweight Vision Transformer (ViT) model for classifying GERD (Gastroesophageal Reflux Disease) severity from endoscopy images.
+A Lightweight Vision Transformer (ViT) model for classifying GERD and Polyp conditions from endoscopy images.
 
 ## Features
 
-- **Image Classification**: Upload endoscopy images to get GERD severity predictions
+- **Image Classification**: Upload endoscopy images to get GERD and Polyp predictions
 - **LIME Explanations**: Visual explanations showing which image regions influenced the prediction
-- **4 Classes**: Esophagitis-A, Esophagitis-B, Esophagitis-C-D, Normal
+- **4 Classes**: GERD, GERD NORMAL, POLYP, POLYP NORMAL
 - **API Access**: RESTful API endpoint for programmatic access
 
 ## Model Architecture
@@ -47,7 +47,7 @@ API_URL = "https://YOUR-USERNAME-gerd-classifier.hf.space/api/predict"
 with open("endoscopy_image.jpg", "rb") as f:
     files = {"file": f}
     response = requests.post(API_URL, files=files)
-    
+
 print(response.json())
 ```
 
@@ -68,15 +68,18 @@ print(result)
 
 ```javascript
 async function classifyImage(imageFile) {
-    const formData = new FormData();
-    formData.append('file', imageFile);
-    
-    const response = await fetch('https://YOUR-USERNAME-gerd-classifier.hf.space/api/predict', {
-        method: 'POST',
-        body: formData
-    });
-    
-    return await response.json();
+  const formData = new FormData();
+  formData.append("file", imageFile);
+
+  const response = await fetch(
+    "https://YOUR-USERNAME-gerd-classifier.hf.space/api/predict",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  return await response.json();
 }
 ```
 

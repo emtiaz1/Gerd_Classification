@@ -24,12 +24,14 @@ TRANSFORMER_LAYERS = 4
 NUM_HEADS = 4
 MLP_HEAD_UNITS = [128, 64]
 
-# Class names - Update these based on your dataset
-CLASS_NAMES = ['Esophagitis-A', 'Esophagitis-B', 'Esophagitis-C-D', 'Normal']
+
+CLASS_NAMES = ['GERD', 'GERD NORMAL', 'POLYP', 'POLYP NORMAL']
 
 # ============================================
 # Model Architecture (same as training)
 # ============================================
+
+
 class Patches(L.Layer):
     def __init__(self, patch_size, **kwargs):
         super(Patches, self).__init__(**kwargs)
@@ -60,7 +62,8 @@ class PatchEncoder(L.Layer):
         self.num_patches = num_patches
         self.projection_dim = projection_dim
         self.projection = L.Dense(units=projection_dim)
-        self.position_embedding = L.Embedding(input_dim=num_patches, output_dim=projection_dim)
+        self.position_embedding = L.Embedding(
+            input_dim=num_patches, output_dim=projection_dim)
 
     def call(self, patch):
         positions = tf.range(start=0, limit=self.num_patches, delta=1)
@@ -102,14 +105,16 @@ def create_lightweight_vit(n_classes):
         )(x1, x1)
         x2 = L.Add()([attention_output, x])
         x3 = L.LayerNormalization(epsilon=1e-6)(x2)
-        x3 = mlp(x3, hidden_units=[PROJECTION_DIM, PROJECTION_DIM], dropout_rate=0.1)
+        x3 = mlp(x3, hidden_units=[PROJECTION_DIM,
+                 PROJECTION_DIM], dropout_rate=0.1)
         x = L.Add()([x3, x2])
 
     # Classification head
     representation = L.LayerNormalization(epsilon=1e-6)(x)
     representation = L.GlobalAveragePooling1D()(representation)
     representation = L.Dropout(0.3)(representation)
-    features = mlp(representation, hidden_units=MLP_HEAD_UNITS, dropout_rate=0.3)
+    features = mlp(representation, hidden_units=MLP_HEAD_UNITS,
+                   dropout_rate=0.3)
     logits = L.Dense(n_classes, activation='softmax')(features)
 
     model = models.Model(inputs=inputs, outputs=logits)
@@ -122,10 +127,10 @@ def create_lightweight_vit(n_classes):
 def load_model():
     """Load the trained model - rebuild architecture and load weights"""
     model_path = "best_fold_model.h5"
-    
+
     # Always rebuild the model architecture first
     model = create_lightweight_vit(len(CLASS_NAMES))
-    
+
     if os.path.exists(model_path):
         try:
             # Try loading the full model first
@@ -133,7 +138,8 @@ def load_model():
                 'Patches': Patches,
                 'PatchEncoder': PatchEncoder
             }
-            model = tf.keras.models.load_model(model_path, custom_objects=custom_objects, compile=False)
+            model = tf.keras.models.load_model(
+                model_path, custom_objects=custom_objects, compile=False)
             print(f"Model loaded from {model_path}")
         except Exception as e:
             print(f"Could not load full model: {e}")
@@ -147,7 +153,7 @@ def load_model():
                 print("Using untrained model architecture")
     else:
         print("Model file not found. Using untrained model architecture...")
-    
+
     return model
 
 
@@ -164,7 +170,7 @@ def preprocess_image(image):
         img = Image.fromarray(image)
     else:
         img = image
-    
+
     img = img.convert('RGB')
     img = img.resize((IMAGE_SIZE, IMAGE_SIZE))
     img_array = np.array(img) / 255.0
@@ -179,8 +185,9 @@ def predict(image):
     img_array = preprocess_image(image)
     img_batch = np.expand_dims(img_array, axis=0)
     predictions = model.predict(img_batch, verbose=0)[0]
-    
-    result = {CLASS_NAMES[i]: float(predictions[i]) for i in range(len(CLASS_NAMES))}
+
+    result = {CLASS_NAMES[i]: float(predictions[i])
+              for i in range(len(CLASS_NAMES))}
     return result
 
 
@@ -190,14 +197,14 @@ def predict(image):
 def generate_lime_explanation(image):
     """Generate LIME explanation for the image"""
     img_array = preprocess_image(image)
-    
+
     # Create LIME explainer
     explainer = lime_image.LimeImageExplainer()
-    
+
     # Define prediction function for LIME
     def predict_fn(images):
         return model.predict(images, verbose=0)
-    
+
     # Generate explanation
     explanation = explainer.explain_instance(
         img_array,
@@ -207,21 +214,22 @@ def generate_lime_explanation(image):
         num_samples=500,  # Reduced for faster inference
         batch_size=32
     )
-    
+
     # Get prediction info
-    predictions = model.predict(np.expand_dims(img_array, axis=0), verbose=0)[0]
+    predictions = model.predict(
+        np.expand_dims(img_array, axis=0), verbose=0)[0]
     predicted_class_idx = np.argmax(predictions)
     predicted_class = CLASS_NAMES[predicted_class_idx]
     predicted_prob = predictions[predicted_class_idx]
-    
+
     # Create visualization figure
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    
+
     # Original image
     axes[0].imshow(img_array)
     axes[0].set_title('Original Image', fontsize=12, fontweight='bold')
     axes[0].axis('off')
-    
+
     # LIME explanation - positive features only
     temp, mask = explanation.get_image_and_mask(
         predicted_class_idx,
@@ -230,10 +238,10 @@ def generate_lime_explanation(image):
         hide_rest=False
     )
     axes[1].imshow(mark_boundaries(temp, mask))
-    axes[1].set_title(f'LIME: {predicted_class}\n(Confidence: {predicted_prob:.2%})', 
+    axes[1].set_title(f'LIME: {predicted_class}\n(Confidence: {predicted_prob:.2%})',
                       fontsize=12, fontweight='bold')
     axes[1].axis('off')
-    
+
     # LIME explanation - positive and negative features
     temp, mask = explanation.get_image_and_mask(
         predicted_class_idx,
@@ -242,19 +250,19 @@ def generate_lime_explanation(image):
         hide_rest=False
     )
     axes[2].imshow(mark_boundaries(temp, mask))
-    axes[2].set_title('Positive (Green) & Negative (Red)\nContributions', 
+    axes[2].set_title('Positive (Green) & Negative (Red)\nContributions',
                       fontsize=12, fontweight='bold')
     axes[2].axis('off')
-    
+
     plt.tight_layout()
-    
+
     # Convert figure to image
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
     buf.seek(0)
     result_image = Image.open(buf)
     plt.close(fig)
-    
+
     return result_image
 
 
@@ -265,24 +273,24 @@ def predict_and_explain(image):
     """Combined function for prediction and LIME explanation"""
     if image is None:
         return None, None
-    
+
     # Get predictions
     predictions = predict(image)
-    
+
     # Generate LIME explanation
     lime_img = generate_lime_explanation(image)
-    
+
     return predictions, lime_img
 
 
 # ============================================
 # Gradio Interface (3.x API)
 # ============================================
-title = "🔬 GERD Endoscopy Classification"
+title = "🔬 GERD & Polyp Endoscopy Classification"
 description = """
-Upload an endoscopy image to classify GERD severity and visualize model explanations using LIME.
+Upload an endoscopy image to classify GERD and Polyp conditions with LIME explanations.
 
-**Classes:** Esophagitis-A | Esophagitis-B | Esophagitis-C-D | Normal
+**Classes:** GERD | GERD NORMAL | POLYP | POLYP NORMAL
 
 ### About LIME Explanations
 - 🟢 **Green boundaries**: Regions that **support** the prediction

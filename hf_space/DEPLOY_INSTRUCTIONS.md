@@ -1,6 +1,6 @@
-# 🚀 Deploying GERD Classifier to Hugging Face Spaces
+# 🚀 Deploying GERD & Polyp Classifier to Hugging Face Spaces
 
-Follow these steps to deploy your GERD classification model to Hugging Face Spaces.
+Follow these steps to deploy your GERD and Polyp classification model to Hugging Face Spaces.
 
 ## Prerequisites
 
@@ -20,6 +20,7 @@ Enter your Hugging Face token when prompted. Get your token from: https://huggin
 ### 2. Create a New Space
 
 Go to https://huggingface.co/new-space and:
+
 - **Space name**: `gerd-classifier` (or your preferred name)
 - **SDK**: Select `Gradio`
 - **Hardware**: Choose `CPU Basic` (free tier) or upgrade if needed
@@ -85,23 +86,23 @@ Gradio automatically handles CORS for Hugging Face Spaces. Your API will be acce
 
 ```javascript
 // Test from browser console
-fetch('https://YOUR-USERNAME-gerd-classifier.hf.space/api/predict', {
-    method: 'POST',
-    body: formData  // FormData with image
+fetch("https://YOUR-USERNAME-gerd-classifier.hf.space/api/predict", {
+  method: "POST",
+  body: formData, // FormData with image
 })
-.then(response => response.json())
-.then(data => console.log(data));
+  .then((response) => response.json())
+  .then((data) => console.log(data));
 ```
 
 ## API Endpoints
 
 Once deployed, your Space will expose these endpoints:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Web interface |
-| `/api/predict` | POST | Prediction API |
-| `/api/predict_and_explain` | POST | Prediction + LIME |
+| Endpoint                   | Method | Description       |
+| -------------------------- | ------ | ----------------- |
+| `/`                        | GET    | Web interface     |
+| `/api/predict`             | POST   | Prediction API    |
+| `/api/predict_and_explain` | POST   | Prediction + LIME |
 
 ### Example API Call
 
@@ -151,14 +152,17 @@ print(response.json())
 ## Troubleshooting
 
 ### Model Not Loading
+
 - Ensure `best_fold_model.h5` is in the root of your Space
 - Check if the file was uploaded correctly in the HF Files tab
 
 ### CORS Issues
+
 - Gradio handles CORS automatically
 - If using custom domains, ensure proper headers
 
 ### Memory Errors
+
 - Upgrade to a higher-tier Space (GPU or more RAM)
 - Reduce `num_samples` in LIME explanation
 
